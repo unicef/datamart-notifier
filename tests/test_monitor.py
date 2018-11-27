@@ -1,7 +1,6 @@
 from datamart_notifier.monitor import monitor
 from demoproject.demoapp1 import models as models1
 from demoproject.demoapp2 import models as models2
-from demoproject.demoapp2.models import Ignored1, Ignored2
 
 
 def test_init(db):

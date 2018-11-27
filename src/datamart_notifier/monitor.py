@@ -3,13 +3,13 @@ from datetime import datetime
 from threading import Thread
 
 import requests
+from django.apps import apps
 from django.core.cache import caches
 from django.db.models.signals import post_save
 from django.db.transaction import on_commit
 from requests import Session
 from requests.adapters import HTTPAdapter
 from urllib3 import Retry
-from django.apps import apps
 
 from . import config
 
@@ -38,7 +38,7 @@ def failure():
 
 
 def success():
-    last_failure = datetime.fromtimestamp(cache.get(KEY))
+    # last_failure = datetime.fromtimestamp(cache.get(KEY))
     dt = datetime.utcnow()
     cache.set(KEY, dt.strftime("%s"))
 
@@ -58,8 +58,8 @@ class Sender(Thread):
     def run(self):
         try:
             r = requests_retry_session(session=self.session).post(config.WEBHOOK,
-                                                            json={'tables': self.tables},
-                                                            timeout=config.TIMEOUT)
+                                                                  json={'tables': self.tables},
+                                                                  timeout=config.TIMEOUT)
             if r.status_code != 200:
                 raise requests.exceptions.HTTPError
         except requests.exceptions.Timeout as e:
@@ -88,9 +88,10 @@ class Monitor:
             app_label, model_name = entry.split('.')
             if model_name == '*':
                 app_config = apps.get_app_config(app_label)
-                self.monitored.extend( app_config.get_models() )
+                self.monitored.extend(app_config.get_models())
             else:
                 self.monitored.append(apps.get_model(app_label, model_name))
+
     def install(self):
         post_save.connect(monitor.on_save, dispatch_uid='datamart_monitor_post_save')
 
@@ -108,5 +109,6 @@ class Monitor:
                 except KeyError:
                     break
             Sender(list(tables)).start()
+
 
 monitor = Monitor()
